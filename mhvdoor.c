@@ -66,6 +66,9 @@ enum Command {
 #define DATA_IN   (DDRB  &= ~_BV(DDB1)  )
 #define DATA_READ (PINB  & _BV(PINB1))
 
+#define SENSOR   (~PINC &   _BV(PINC0))
+#define LED_ON   (PORTB |=  _BV(PORTB5))
+#define LED_OFF  (PORTB &= ~_BV(PORTB5))
 
 void write_bits_msb( uint8_t startingbit, uint8_t value ) {
   DATA_OUT;
@@ -185,6 +188,10 @@ void blank() {
 int main(void) {
   DDRB |= _BV(DDB5); // debug LED
 
+  // make sure C0 is set to input and it's pullup is on
+  DDRC  &= ~_BV(DDC0);
+  PORTC |=  _BV(PORTC0);
+
   DDRB |= _BV(DDB0);
   DDRB |= _BV(DDB1);
   DDRB |= _BV(DDB2);
@@ -230,57 +237,72 @@ int main(void) {
 
   _delay_ms(10);
 
-
-  uint8_t buffer[32] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-
-  int8_t dir = 1;
-
-  int8_t i = 0;
+  uint16_t OCCUPY = 0;
   while(1) {
-    i += dir;
-    if( i < 0 || i > 128 ) {
-      dir *= -1;
-      i+= dir * 2;
+    if( SENSOR ) {
+      LED_ON;
+      if( OCCUPY < 8*128 ) {
+        OCCUPY++;
+      }
+    } else {
+      LED_OFF;
+      if(OCCUPY > 0) {
+        OCCUPY--;
+      }
     }
 
-    buffer[i%32] = i < 32 ? 0xFF : 0;
-    CS1_LOW;
-    write_buffer(buffer,32,0);
-    CS1_HIGH;
-
-    buffer[i%32] = i >= 32 && i < 64 ? 0xFF : 0;
-    CS2_LOW;
-    write_buffer(buffer,32,0);
-    CS2_HIGH;
-
-    buffer[i%32] = i >= 64 && i < 96 ? 0xFF : 0;
-    CS3_LOW;
-    write_buffer(buffer,32,0);
-    CS3_HIGH;
-
-    buffer[i%32] = i >= 96 ? 0xFF : 0;
-    CS4_LOW;
-    write_buffer(buffer,32,0);
+    uint8_t row;
+    uint16_t lights_left = OCCUPY;
+    for( row = 0; row < 128; row ++ ) {
+      switch( row ){
+        case 0:
+          CS4_HIGH;
+          CS1_LOW;
+          set_mode(write_mode);
+          send_address(0);
+          break;
+        case 32:
+          CS1_HIGH;
+          CS2_LOW;
+          set_mode(write_mode);
+          send_address(0);
+          break;
+        case 64:
+          CS2_HIGH;
+          CS3_LOW;
+          set_mode(write_mode);
+          send_address(0);
+          break;
+        case 96:
+          CS3_HIGH;
+          CS4_LOW;
+          set_mode(write_mode);
+          send_address(0);
+          break;
+      }
+      if( lights_left  > 8 ) {
+        send_data(0xFF);
+        send_data(0xFF);
+        lights_left -= 8;
+      } else if( lights_left == 0 ) {
+        send_data(0x0);
+        send_data(0x0);
+      } else {
+        uint8_t temp = 128;
+        while( lights_left > 1 ) {
+          --lights_left;
+          temp >>= 1;
+          temp |= 128;
+        }
+        send_data( temp );
+        swap(temp);
+        send_data( temp );
+        lights_left = 0;
+      }
+    }
     CS4_HIGH;
+    _delay_ms(1000);
 
-    _delay_ms(20);
-    buffer[i%32] = 0;
-
-    CS1_LOW;
-    write_buffer(buffer,32,0);
-    CS1_HIGH;
-
-    CS2_LOW;
-    write_buffer(buffer,32,0);
-    CS2_HIGH;
-
-    CS3_LOW;
-    write_buffer(buffer,32,0);
-    CS3_HIGH;
-
-    CS4_LOW;
-    write_buffer(buffer,32,0);
-    CS4_HIGH;
   }
   return 0;
 }
