@@ -34,7 +34,7 @@ CFLAGS := -g -Os -Wall -mcall-prologues -mmcu=$(MCU) -DF_CPU=$(F_CPU)
 ALL : $(TARGET).hex
 	
 %.obj : %.o
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $@ -lm
 	
 %.hex : %.obj
 	$(OBJ2HEX) -R .eeprom -O ihex $< $@

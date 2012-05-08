@@ -1,7 +1,9 @@
+#include <math.h>
 #include <avr/io.h>
 #include <util/delay.h>
 
 #include <avr/pgmspace.h>
+
 
 #define swap(value) asm volatile("swap %0" : "=r" (value) : "0" (value));
 
@@ -237,16 +239,16 @@ int main(void) {
 
   _delay_ms(10);
 
-  uint16_t OCCUPY = 0;
+  double OCCUPY = 0;
   while(1) {
     if( SENSOR ) {
       LED_ON;
-      if( OCCUPY < 8*128 ) {
+      if( OCCUPY < 84600 ) {
         OCCUPY++;
       }
     } else {
       LED_OFF;
-      if(OCCUPY > 0) {
+      if(OCCUPY > 1) {
         OCCUPY--;
       }
     }
@@ -279,15 +281,16 @@ int main(void) {
           send_address(0);
           break;
       }
-      if( (row+1) * 8 <= OCCUPY ) {
+      uint16_t leds = lrint(163.292 * log(22*OCCUPY/3600+1));
+      if( (row+1) * 8 <= leds ) {
         send_data(0xFF);
         send_data(0xFF);
-      } else if( row * 8 > OCCUPY ) {
+      } else if( row * 8 > leds ) {
         send_data(0x0);
         send_data(0x0);
       } else {
-        uint8_t temp = 128;
-        uint8_t lights_left = OCCUPY % 8;
+        uint8_t temp = _BV(7);
+        uint8_t lights_left = leds % 8;
         while( lights_left > 0 ) {
           --lights_left;
           temp >>= 1;
