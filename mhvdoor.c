@@ -251,8 +251,7 @@ int main(void) {
       }
     }
 
-    uint8_t row;
-    uint16_t lights_left = OCCUPY;
+    uint16_t row;
     for( row = 0; row < 128; row ++ ) {
       switch( row ){
         case 0:
@@ -280,16 +279,16 @@ int main(void) {
           send_address(0);
           break;
       }
-      if( lights_left  > 8 ) {
+      if( (row+1) * 8 <= OCCUPY ) {
         send_data(0xFF);
         send_data(0xFF);
-        lights_left -= 8;
-      } else if( lights_left == 0 ) {
+      } else if( row * 8 > OCCUPY ) {
         send_data(0x0);
         send_data(0x0);
       } else {
         uint8_t temp = 128;
-        while( lights_left > 1 ) {
+        uint8_t lights_left = OCCUPY % 8;
+        while( lights_left > 0 ) {
           --lights_left;
           temp >>= 1;
           temp |= 128;
@@ -297,7 +296,6 @@ int main(void) {
         send_data( temp );
         swap(temp);
         send_data( temp );
-        lights_left = 0;
       }
     }
     CS4_HIGH;
