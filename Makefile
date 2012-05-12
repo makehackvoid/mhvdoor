@@ -3,8 +3,10 @@ ARDUINO_VERSION=mhvboard
 TARGET=$(shell basename `pwd`)
 AVRDUDE_PORT=usb
 
-# you shouldn't need to change anything below here
+SRC = $(TARGET).c 
+SRC += ht1632.c 
 
+# you shouldn't need to change anything below here
 AVRDUDE=avrdude
 
 CC=avr-gcc
@@ -32,15 +34,24 @@ CFLAGS := -g -Os -Wall -mcall-prologues -mmcu=$(MCU) -DF_CPU=$(F_CPU)
 
 # deafult is to compile to the hex file
 ALL : $(TARGET).hex
-	
-%.obj : %.o
-	$(CC) $(CFLAGS) $< -o $@ -lm
+
+%.d: %.c
+	set -e; $(CC) -MM $(ALL_CFLAGS) $< \
+	| sed 's,\(.*\)\.o[ :]*,\1.o \1.d : ,g' > $@; \
+	[ -s $@ ] || rm -f $@
+
+-include $(SRC:.c=.d)
+
+ODEPS=$(SRC:.c=.o)
+
+%.obj : $(ODEPS)
+	$(CC) $(CFLAGS) $? -o $@ -lm
 	
 %.hex : %.obj
 	$(OBJ2HEX) -R .eeprom -O ihex $< $@
 
 clean :
-	rm -f *.hex *.obj *.o
+	rm -f *.hex *.obj *.o *.d
 
 program: $(TARGET).hex
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) 
