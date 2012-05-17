@@ -17,12 +17,12 @@ Pins
 ====
 Sure displays
 -------------
-wclk B0
-rclk B1
-data B2
-CS1  D4
-CS2  D5
-CS3  D6
+wclk B0  
+rclk B1  
+data B2  
+CS1  D4  
+CS2  D5  
+CS3  D6  
 CS4  D7 (yes this is a derp, when you are using the upload jumper the 4th
 display gets garbage.)
 
@@ -35,5 +35,9 @@ Hacking
 =======
 If you want to hack on it read the do-ocracy sign!
 
-All the code is currently contained in a single c file and it can be
-compiled with 'make' and programmed with 'make program'.
+The makefile now supports multiple c files and handles, if you add more 
+source files add them to the (space separated) SRC macro. The project can
+bo compiled with 'make' and programmed with 'make program'. Note that the
+bootloader on this particular mhvboard still uses the jumper on D7 to go 
+into programming mode after a reset. D7 is also used as a Chip Select on
+one of the LED matracies which gets well confused when the jumper is on.
