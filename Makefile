@@ -4,7 +4,7 @@ TARGET=$(shell basename `pwd`)
 AVRDUDE_PORT=usb
 
 SRC = $(TARGET).c 
-SRC += ht1632.c lpd8806.c
+SRC += ht1632.c lpd8806.c colour.c
 
 # you shouldn't need to change anything below here
 AVRDUDE=avrdude

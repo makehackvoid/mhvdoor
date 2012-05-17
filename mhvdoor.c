@@ -5,6 +5,8 @@
 #include <avr/pgmspace.h>
 #include "ht1632.h"
 #include "mhvdoor.h"
+#include "colour.h"
+
 
 int main(void) {
   DDRB |= _BV(DDB5); // debug LED
@@ -68,17 +70,22 @@ int main(void) {
   // Setup the data for the LPD8806 based string of LEDs.
   uint8_t buffer[32*3];
   uint16_t i;
-  for(i=0;i<32*3;i++) { buffer[i] = 0x80; }
+  for(i=0;i<32*3;i++) { buffer[i] = 0; }
   LPD8806_write(buffer,32*3);
-  i = 0;
+  
+  uint16_t j=0;
 
   double OCCUPY = 0;
   while(1) {
     
-    // boring blinky pattern for now.
-    buffer[i] = 0;
-    i = i == 32*3 -2 ? 0 : i+1;
-    buffer[i] = 127;
+    for(i = 0; i < 32; ++i ) {
+      HSVtoRGB(
+        ((360/32)*i+j) % 360, 255, 255,
+        buffer+1+i*3, buffer+0+i*3, buffer+2+i*3
+      );
+    }
+    j+=8;
+
     LPD8806_write(buffer,32*3);
 
     if( SENSOR ) {
