@@ -9,21 +9,30 @@
 int main(void) {
   DDRB |= _BV(DDB5); // debug LED
 
+  // PIR Sensor input
   // make sure C0 is set to input and it's pullup is on
   DDRC  &= ~_BV(DDC0);
   PORTC |=  _BV(PORTC0);
 
+  // HT1632 data bus
   DDRB |= _BV(DDB0);
   DDRB |= _BV(DDB1);
   DDRB |= _BV(DDB2);
   
+  // HT1632 Chip Selects
   DDRD |= _BV(DDD3); //cs1
   DDRD |= _BV(DDD5); //cs2
   DDRD |= _BV(DDD6); //cs3
   DDRD |= _BV(DDD7); //cs4
 
+  // Pull all the Chip Selects on the HT1632s high
   PORTD |= _BV(PORTD3) | _BV(PORTD5) | _BV(PORTD6) | _BV(PORTD7);
+  
+  // LPD8806 data bus
+  DDRC |= _BV(DDC4);
+  DDRC |= _BV(DDC5);
 
+  // Setup each of the HT1632 displays
   CS1_LOW;
   init();
   CS1_HIGH;
@@ -56,10 +65,22 @@ int main(void) {
   blank();
   CS4_HIGH;
 
-  _delay_ms(10);
+  // Setup the data for the LPD8806 based string of LEDs.
+  uint8_t buffer[32*3];
+  uint16_t i;
+  for(i=0;i<32*3;i++) { buffer[i] = 0x80; }
+  LPD8806_write(buffer,32*3);
+  i = 0;
 
   double OCCUPY = 0;
   while(1) {
+    
+    // boring blinky pattern for now.
+    buffer[i] = 0;
+    i = i == 32*3 -2 ? 0 : i+1;
+    buffer[i] = 127;
+    LPD8806_write(buffer,32*3);
+
     if( SENSOR ) {
       LED_ON;
       if( OCCUPY < 84600 ) {
