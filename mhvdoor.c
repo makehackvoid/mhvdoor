@@ -3,10 +3,28 @@
 #include <util/delay.h>
 
 #include <avr/pgmspace.h>
+#include <avr/interrupt.h>
+
 #include "ht1632.h"
 #include "mhvdoor.h"
 #include "colour.h"
 
+
+volatile double OCCUPY = 0;
+
+ISR(TIMER1_COMPA_vect) {
+  if( SENSOR ) {
+    LED_ON;
+    if( OCCUPY < 84600 ) {
+      OCCUPY++;
+    }
+  } else {
+    LED_OFF;
+    if(OCCUPY > 1) {
+      OCCUPY--;
+    }
+  }
+}
 
 int main(void) {
   DDRB |= _BV(DDB5); // debug LED
@@ -67,6 +85,20 @@ int main(void) {
   blank();
   CS4_HIGH;
 
+
+  // Set up the timer to tick every second
+  cli();
+  TCCR1A = 0;
+  TCCR1B = 0;
+
+  // set compare match register to desired timer count:
+  OCR1A = 15624;
+  TCCR1B |= (1 << WGM12);
+  TCCR1B |= (1 << CS10) | (1 << CS12); // 1024 perscaler
+  TIMSK1 |= (1 << OCIE1A);
+
+  sei();
+
   // Setup the data for the LPD8806 based string of LEDs.
   uint8_t buffer[32*3];
   uint16_t i;
@@ -75,7 +107,6 @@ int main(void) {
   
   uint16_t j=0;
 
-  double OCCUPY = 0;
   while(1) {
     
     for(i = 0; i < 32; ++i ) {
@@ -88,17 +119,6 @@ int main(void) {
 
     LPD8806_write(buffer,32*3);
 
-    if( SENSOR ) {
-      LED_ON;
-      if( OCCUPY < 84600 ) {
-        OCCUPY++;
-      }
-    } else {
-      LED_OFF;
-      if(OCCUPY > 1) {
-        OCCUPY--;
-      }
-    }
 
     uint16_t row;
     for( row = 0; row < 128; row ++ ) {
@@ -149,8 +169,6 @@ int main(void) {
       }
     }
     CS4_HIGH;
-    _delay_ms(1000);
-
   }
   return 0;
 }
