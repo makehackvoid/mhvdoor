@@ -119,7 +119,7 @@ int main(void) {
 
     LPD8806_write(buffer,32*3);
 
-
+    uint16_t leds = lrint(163.292 * log(22*OCCUPY/3600+1));
     uint16_t row;
     for( row = 0; row < 128; row ++ ) {
       switch( row ){
@@ -148,7 +148,6 @@ int main(void) {
           send_address(0);
           break;
       }
-      uint16_t leds = lrint(163.292 * log(22*OCCUPY/3600+1));
       if( (row+1) * 8 <= leds ) {
         send_data(0xFF);
         send_data(0xFF);
