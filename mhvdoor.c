@@ -11,19 +11,21 @@
 
 
 volatile double OCCUPY = 0;
+volatile float j = 0;
 
+
+// Timmer routine gets called 100 times a second.
 ISR(TIMER1_COMPA_vect) {
-  if( SENSOR ) {
-    LED_ON;
-    if( OCCUPY < 84600 ) {
-      OCCUPY++;
-    }
-  } else {
-    LED_OFF;
-    if(OCCUPY > 1) {
-      OCCUPY--;
-    }
-  }
+  if( SENSOR ) { LED_ON; }
+  else { LED_OFF; }
+
+  OCCUPY += SENSOR ? 0.01 : -0.01;
+  
+  if( OCCUPY < 0 ) OCCUPY = 0;
+  if( OCCUPY > 84600 ) OCCUPY = 84600;
+
+  j+= (18 + ((360-18)*(OCCUPY/84600)))*0.01;
+  if( j > 360 ) j -= 360;
 }
 
 int main(void) {
@@ -92,7 +94,7 @@ int main(void) {
   TCCR1B = 0;
 
   // set compare match register to desired timer count:
-  OCR1A = 15624;
+  OCR1A = 156;
   TCCR1B |= (1 << WGM12);
   TCCR1B |= (1 << CS10) | (1 << CS12); // 1024 perscaler
   TIMSK1 |= (1 << OCIE1A);
@@ -105,21 +107,20 @@ int main(void) {
   for(i=0;i<32*3;i++) { buffer[i] = 0; }
   LPD8806_write(buffer,32*3);
   
-  uint16_t j=0;
 
   while(1) {
     
     for(i = 0; i < 32; ++i ) {
       HSVtoRGB(
-        ((360/32)*i+j) % 360, 255, 255,
+        (int)((360/32)*i+j) % 360, 255, 255,
         buffer+1+i*3, buffer+0+i*3, buffer+2+i*3
       );
     }
-    j+=8;
 
     LPD8806_write(buffer,32*3);
 
     uint16_t leds = lrint(163.292 * log(22*OCCUPY/3600+1));
+
     uint16_t row;
     for( row = 0; row < 128; row ++ ) {
       switch( row ){
